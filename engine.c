@@ -47,6 +47,12 @@ Value* create_value(double data) {
     return v;
 }
 
+char* repr(Value* v) {
+    static char vrepr[100];
+    snprintf(vrepr, sizeof(vrepr), "Value(data=%f, grad=%f)", v->data, v->grad);
+    return vrepr;
+}
+
 // operations
 Value* add(Value* a, Value* b) {
     Value* out = create_value(a->data + b->data);
@@ -143,3 +149,4 @@ void backward(Value* v) {
         if (topo[i]->backward != NULL) 
             topo[i]->backward(topo[i]);
 }
+

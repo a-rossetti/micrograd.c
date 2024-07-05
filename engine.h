@@ -20,6 +20,7 @@ Value* neg(Value* a);
 Value* sub(Value* a, Value* b);
 Value* truediv(Value* a, Value* b);
 void backward(Value* v);
+char* repr(Value* v);
 
 #endif
 
