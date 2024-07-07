@@ -1,0 +1,43 @@
+// nn.h
+#ifndef NN_H
+#define NN_H
+
+#include <stdbool.h>
+#include "engine.h"
+
+typedef struct {
+    bool nonlin;            // Nonlinearity flag
+    // Future parameters can be added here
+} NeuronConfig;
+
+typedef struct {
+    Value *w;               // Array of weights
+    Value b;                // Bias
+    int n_inputs;           // Number of inputs
+    NeuronConfig config;    // Additional neuron configuration 
+} Neuron;
+
+typedef struct {
+    Neuron *neurons;        // Array of neurons
+    int n_neurons;          // Number of neurons in the layer
+} Layer;
+
+typedef struct {
+    Layer *layers;          // Array of layers
+    int n_layers;           // Number of layers in the MLP
+} MLP;
+
+void neuron_zero_grad(Neuron *neuron);
+void neuron_init(Neuron *neuron, int n_inputs, bool nonlin);
+void neuron_call(Neuron *neuron);
+
+void layer_zero_grad(Layer *layer);
+void layer_init(Layer *layer, int n_inputs, int n_neurons, NeuronConfig config);
+void layer_call(Layer *layer);
+
+/* TODO
+void mlp_zero_grad(MLP *mlp);
+void mlp_init(MLP *mlp, int n_neurons, int n_layers);
+void mlp_call(MLP *mlp);
+*/
+#endif
