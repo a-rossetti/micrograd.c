@@ -25,6 +25,17 @@ void neuron_init(Neuron *neuron, int n_inputs, NeuronConfig config) {
     neuron->b.grad = 0;
 }
 
+Value* neuron_call(Neuron *neuron, int n_inputs, Value *x) {
+    Value *act = create_value(neuron->b.data);
+    for (int i = 0; i < neuron->n_inputs; i++) {
+        act = add(act, mul(&(neuron->w[i]), &(x[i])));
+    }
+    if (neuron->config.nonlin == true) {
+        act = relu(act);
+    }
+    return act;
+}
+
 // Layer functions
 void layer_zero_grad(Layer *layer) {
     for (int i = 0; i < layer->n_neurons; i++) {
