@@ -33,11 +33,10 @@ Value* neuron_call(Neuron *neuron, Value *x);
 
 void layer_zero_grad(Layer *layer);
 void layer_init(Layer *layer, int n_inputs, int n_neurons, NeuronConfig config);
-void layer_call(Layer *layer);
+Value** layer_call(Layer *layer, Value **x);
 
-/* TODO
 void mlp_zero_grad(MLP *mlp);
-void mlp_init(MLP *mlp, int n_neurons, int n_layers);
-void mlp_call(MLP *mlp);
-*/
+void mlp_init(MLP *mlp, int nin, int *nouts, int nouts_len);
+Value** mlp_call(MLP *mlp, Value **x, int n_inputs);
+
 #endif
