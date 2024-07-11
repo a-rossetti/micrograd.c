@@ -25,11 +25,11 @@ void neuron_init(Neuron *neuron, int n_inputs, NeuronConfig config) {
     neuron->b.grad = 0;
 }
 
-Value* neuron_call(Neuron *neuron, Value *x) {
+Value* neuron_call(Neuron *neuron, Value **x) {
     Value *act = create_value(neuron->b.data);
 
     for (int i = 0; i < neuron->n_inputs; i++) {
-        act = add(act, mul(&(neuron->w[i]), &(x[i])));
+        act = add(act, mul(&(neuron->w[i]), x[i]));
     }
     if (neuron->config.nonlin == true) {
         act = relu(act);
@@ -70,7 +70,7 @@ Value** layer_call(Layer *layer, Value **x) {
     if (out == NULL) return NULL;
 
     for (int i = 0; i < layer->n_neurons; i++) {
-        out[i] = neuron_call(&layer->neurons[i], x[i]);
+        out[i] = neuron_call(&layer->neurons[i], x);
     }
     return out;
 }
@@ -119,22 +119,19 @@ void mlp_init(MLP *mlp, int nin, int *nouts, int nouts_len) {
     free(sizes);
 }
 
-Value** mlp_call(MLP *mlp, Value **x, int n_inputs) {
+Value** mlp_call(MLP *mlp, Value **x) {
     Value **current_x = x;
-    int current_n = n_inputs;
 
     for (int i = 0; i < mlp->n_layers; i++) {
         Value **layer_out = layer_call(&mlp->layers[i], current_x);
-
         if (i > 0) {
-            for (int j = 0; j < current_n; j++) {
-                free(x[j]);
+            for (int j = 0; j < mlp->layers[i-1].n_neurons; j++) {
+                free(current_x[j]);
             }
-            free(x);
+            free(current_x);
         }
 
-        x = layer_out;
-        current_n = mlp->layers[i].n_neurons;
+        current_x = layer_out;
     }
     return current_x;
 }

@@ -41,7 +41,7 @@ Value* create_value(double data) {
     v->grad = 0.0;
     v->prev[0] = NULL;
     v->prev[1] = NULL;
-    strcpy(v->op, "");
+    v->op[0] = '\0';
     v->backward = NULL;
 
     return v;
@@ -124,14 +124,16 @@ Value* truediv(Value* a, Value* b) {
 
 // Backward function
 void build_topo(Value* v, Value** topo, int* topo_size, Value** visited, int* visited_size) {
-    for (int i = 0; i < *visited_size; i++)
+    for (int i = 0; i < *visited_size; i++) {
         if (visited[i] == v) return;
-
+    }
     visited[(*visited_size)++] = v;
 
-    for (int i = 0; i < 2; i++)
-        if (v->prev[i] != NULL)
+    for (int i = 0; i < 2; i++) {
+        if (v->prev[i] != NULL) {
             build_topo(v->prev[i], topo, topo_size, visited, visited_size);
+        }
+    }
 
     topo[(*topo_size)++] = v;
 }
@@ -145,8 +147,10 @@ void backward(Value* v) {
     build_topo(v, topo, &topo_size, visited, &visited_size);
 
     v->grad = 1.0;
-    for (int i = topo_size - 1; i >= 0; i--)
-        if (topo[i]->backward != NULL) 
+    for (int i = topo_size - 1; i >= 0; i--) {
+        if (topo[i]->backward != NULL) {
             topo[i]->backward(topo[i]);
+        }
+    }
 }
 
