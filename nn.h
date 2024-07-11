@@ -30,13 +30,17 @@ typedef struct {
 void neuron_zero_grad(Neuron *neuron);
 void neuron_init(Neuron *neuron, int n_inputs, NeuronConfig config);
 Value* neuron_call(Neuron *neuron, Value *x);
+Value** neuron_parameters(Neuron *neuron);
 
 void layer_zero_grad(Layer *layer);
 void layer_init(Layer *layer, int n_inputs, int n_neurons, NeuronConfig config);
 Value** layer_call(Layer *layer, Value **x);
+Value** layer_parameters(Layer *layer);
 
 void mlp_zero_grad(MLP *mlp);
 void mlp_init(MLP *mlp, int nin, int *nouts, int nouts_len);
 Value** mlp_call(MLP *mlp, Value **x, int n_inputs);
+int mlp_n_params(MLP *mlp);
+Value** mlp_parameters(MLP *mlp);
 
 #endif
