@@ -5,6 +5,15 @@
 #include <math.h>
 #include <time.h>
 
+void update_parameters(MLP *mlp, Value *learning_rate) {
+    Value** params = mlp_parameters(mlp);
+    int n_params = mlp_n_params(mlp);
+    for (int i = 0; i < n_params; i++) {
+        params[i]->data -= learning_rate->data * params[i]->grad;
+    }
+    free(params);
+}
+
 int main() {
     srand(time(NULL));
 
@@ -56,13 +65,9 @@ int main() {
         printf("Epoch %d: Loss: %f\n", epoch, total_loss->data);
 
         // Update
-        Value** params = mlp_parameters(&mlp);
-        int n_params = mlp_n_params(&mlp);
-        for (int i = 0; i < n_params; i++) {
-            params[i]->data -= learning_rate->data * params[i]->grad;
-        }
-        
-        free(params);
+        update_parameters(&mlp, learning_rate);
+
+        free(total_loss);
     }
 
     printf("Final predictions:\n");

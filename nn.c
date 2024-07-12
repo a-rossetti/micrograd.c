@@ -1,5 +1,6 @@
 // nn.c
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include "nn.h"
 #include "engine.h"
@@ -21,7 +22,7 @@ void neuron_init(Neuron *neuron, int n_inputs, NeuronConfig config) {
         neuron->w[i].data = ((double)rand() / RAND_MAX) * 2 - 1;
         neuron->w[i].grad = 0;
     }
-    neuron->b.data = 0;
+    neuron->b.data = ((double)rand() / RAND_MAX) * 2 - 1;;
     neuron->b.grad = 0;
 }
 
@@ -124,6 +125,7 @@ Value** mlp_call(MLP *mlp, Value **x) {
 
     for (int i = 0; i < mlp->n_layers; i++) {
         Value **layer_out = layer_call(&mlp->layers[i], current_x);
+
         if (i > 0) {
             for (int j = 0; j < mlp->layers[i-1].n_neurons; j++) {
                 free(current_x[j]);
