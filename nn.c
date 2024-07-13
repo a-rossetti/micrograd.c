@@ -30,17 +30,24 @@ Value* neuron_call(Neuron *neuron, Value **x) {
     Value *act = create_value(neuron->b.data);
 
     for (int i = 0; i < neuron->n_inputs; i++) {
-        act = add(act, mul(&(neuron->w[i]), x[i]));
+        Value* prod = mul(&(neuron->w[i]), x[i]);
+        Value* sum = add(act, prod);
+        free(act);
+        act = sum;
     }
-    if (neuron->config.nonlin == true) {
-        act = relu(act);
+    
+    if (neuron->config.nonlin == 1) {
+        Value* relu_out = relu(act);
+        free(act);
+        return relu_out;
     }
+    
     return act;
 }
 
 Value** neuron_parameters(Neuron *neuron) {
     int n_params = neuron->n_inputs + 1;
-    Value **params = malloc(n_params * sizeof(Value*));
+    Value **params = (Value**)malloc(n_params * sizeof(Value*));
     if (params == NULL) return NULL;
 
     for (int i = 0; i < neuron->n_inputs; i++) {
@@ -67,7 +74,7 @@ void layer_init(Layer *layer, int n_inputs, int n_neurons, NeuronConfig config) 
 }
 
 Value** layer_call(Layer *layer, Value **x) {
-    Value **out = malloc(layer->n_neurons * sizeof(Value*));
+    Value **out = (Value**)malloc(layer->n_neurons * sizeof(Value*));
     if (out == NULL) return NULL;
 
     for (int i = 0; i < layer->n_neurons; i++) {
@@ -80,7 +87,7 @@ Value** layer_parameters(Layer *layer) {
     int params_per_neuron = layer->neurons[0].n_inputs + 1;
     int n_params = layer->n_neurons * params_per_neuron;
 
-    Value** params = malloc(n_params * sizeof(Value*));
+    Value** params = (Value**)malloc(n_params * sizeof(Value*));
     if (params == NULL) return NULL;
 
     int pi = 0;
@@ -103,13 +110,13 @@ void mlp_zero_grad(MLP *mlp) {
 }
 
 void mlp_init(MLP *mlp, int nin, int *nouts, int nouts_len) {
-    int *sizes = malloc((nouts_len + 1) * sizeof(int));
+    int *sizes = (int*)malloc((nouts_len + 1) * sizeof(int));
     sizes[0] = nin;
 
     for (int i = 0; i < nouts_len; i++) {
         sizes[i+1] = nouts[i];
     }
-    mlp->layers = malloc(nouts_len * sizeof(Layer));
+    mlp->layers = (Layer*)malloc(nouts_len * sizeof(Layer));
     mlp->n_layers = nouts_len;
     
     for (int i = 0; i < nouts_len; i++) {
@@ -120,22 +127,18 @@ void mlp_init(MLP *mlp, int nin, int *nouts, int nouts_len) {
     free(sizes);
 }
 
-Value** mlp_call(MLP *mlp, Value **x) {
+MLPOutput* mlp_call(MLP *mlp, Value **x) {
+    MLPOutput* output = malloc(sizeof(MLPOutput));
+    output->layer_outputs = malloc(mlp->n_layers * sizeof(Value**));
+    output->n_layers = mlp->n_layers;
+
     Value **current_x = x;
 
     for (int i = 0; i < mlp->n_layers; i++) {
-        Value **layer_out = layer_call(&mlp->layers[i], current_x);
-
-        if (i > 0) {
-            for (int j = 0; j < mlp->layers[i-1].n_neurons; j++) {
-                free(current_x[j]);
-            }
-            free(current_x);
-        }
-
-        current_x = layer_out;
+        output->layer_outputs[i] = layer_call(&mlp->layers[i], current_x);
+        current_x = output->layer_outputs[i];
     }
-    return current_x;
+    return output;
 }
 
 int mlp_n_params(MLP *mlp) {
@@ -152,7 +155,7 @@ Value** mlp_parameters(MLP *mlp) {
     int params_per_neuron = mlp->layers[0].neurons[0].n_inputs + 1;
     int n_params = mlp_n_params(mlp);
 
-    Value** params = malloc(n_params * sizeof(Value*));
+    Value** params = (Value**)malloc(n_params * sizeof(Value*));
     if (params == NULL) return NULL;
 
     int pi = 0;

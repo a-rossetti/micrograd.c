@@ -50,13 +50,21 @@ int main() {
 
         // Forward pass
         Value* total_loss = create_value(0.0);
+        MLPOutput** outputs = malloc(num_samples * sizeof(MLPOutput*));
+
         for (int i = 0; i < num_samples; i++) {
-            Value **ypred = mlp_call(&mlp, inputs[i]);
-            Value* diff = sub(ypred[0], targets[i]);
+            outputs[i] = mlp_call(&mlp, inputs[i]);
+            Value* ypred = outputs[i]->layer_outputs[mlp.n_layers - 1][0];
+            Value* diff = sub(ypred, targets[i]);
             Value* squared = power(diff, 2.0);
             Value* sample_loss = truediv(squared, create_value((double)num_samples));
-            total_loss = add(total_loss, sample_loss);
-            free(ypred);
+            Value* new_total_loss = add(total_loss, sample_loss);
+            free(total_loss);
+            total_loss = new_total_loss;
+
+            free(diff);
+            free(squared);
+            free(sample_loss);
         }
 
         // Backward pass
@@ -64,21 +72,39 @@ int main() {
 
         printf("Epoch %d: Loss: %f\n", epoch, total_loss->data);
 
-        // Update
+        // Update parameters
         update_parameters(&mlp, learning_rate);
 
+        // Free memory
+        for (int i = 0; i < num_samples; i++) {
+            for (int j = 0; j < outputs[i]->n_layers; j++) {
+                for (int k = 0; k < mlp.layers[j].n_neurons; k++) {
+                    free(outputs[i]->layer_outputs[j][k]);
+                }
+                free(outputs[i]->layer_outputs[j]);
+            }
+            free(outputs[i]->layer_outputs);
+            free(outputs[i]);
+        }
+        free(outputs);
         free(total_loss);
     }
 
     printf("Final predictions:\n");
     for (int i = 0; i < num_samples; i++) {
-        Value **final_pred = mlp_call(&mlp, inputs[i]);
-        printf("Prediction for sample %d: %s\n", i + 1, repr(final_pred[0]));
+        MLPOutput* output = mlp_call(&mlp, inputs[i]);
+        Value* final_pred = output->layer_outputs[mlp.n_layers - 1][0];
+        printf("Prediction for sample %d: %s\n", i + 1, repr(final_pred));
 
-        for (int j = 0; j < mlp.layers[mlp.n_layers - 1].n_neurons; j++) {
-            free(final_pred[j]);
+        // Free the output structure
+        for (int j = 0; j < output->n_layers; j++) {
+            for (int k = 0; k < mlp.layers[j].n_neurons; k++) {
+                free(output->layer_outputs[j][k]);
+            }
+            free(output->layer_outputs[j]);
         }
-        free(final_pred);
+        free(output->layer_outputs);
+        free(output);
     }
 
     return 0;

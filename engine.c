@@ -30,6 +30,7 @@ void relu_backward(Value* out) {
     Value *a = out->prev[0];
     if (out->data > 0) 
         a->grad += out->grad;
+    printf("relu_backward called for Value: %s\n", repr(out));
 }
 
 // Value structure
@@ -114,7 +115,7 @@ Value* neg(Value* a) {
     return mul(a, create_value(-1));
 }
 
-Value* sub(Value* a, Value* b) {
+Value* sub(Value* a, Value* b) { 
     return add(a, neg(b));
 }
 
@@ -134,7 +135,6 @@ void build_topo(Value* v, Value** topo, int* topo_size, Value** visited, int* vi
             build_topo(v->prev[i], topo, topo_size, visited, visited_size);
         }
     }
-
     topo[(*topo_size)++] = v;
 }
 

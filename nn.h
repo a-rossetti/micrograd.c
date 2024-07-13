@@ -2,11 +2,10 @@
 #ifndef NN_H
 #define NN_H
 
-#include <stdbool.h>
 #include "engine.h"
 
 typedef struct {
-    bool nonlin;            // Nonlinearity flag
+    int nonlin;            // Nonlinearity flag
     // Future parameters can be added here
 } NeuronConfig;
 
@@ -27,6 +26,11 @@ typedef struct {
     int n_layers;           // Number of layers in the MLP
 } MLP;
 
+typedef struct {
+    Value ***layer_outputs;
+    int n_layers;
+} MLPOutput;
+
 void neuron_zero_grad(Neuron *neuron);
 void neuron_init(Neuron *neuron, int n_inputs, NeuronConfig config);
 Value* neuron_call(Neuron *neuron, Value **x);
@@ -39,7 +43,7 @@ Value** layer_parameters(Layer *layer);
 
 void mlp_zero_grad(MLP *mlp);
 void mlp_init(MLP *mlp, int nin, int *nouts, int nouts_len);
-Value** mlp_call(MLP *mlp, Value **x);
+MLPOutput* mlp_call(MLP *mlp, Value **x);
 int mlp_n_params(MLP *mlp);
 Value** mlp_parameters(MLP *mlp);
 
