@@ -4,11 +4,15 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <string.h>
 
 void update_parameters(MLP *mlp, Value *learning_rate) {
     Value** params = mlp_parameters(mlp);
     int n_params = mlp_n_params(mlp);
+    printf("%d\n", n_params);
     for (int i = 0; i < n_params; i++) {
+        char* repri = repr(params[i]);
+        printf("%s\n", repri);
         params[i]->data -= learning_rate->data * params[i]->grad;
     }
     free(params);
@@ -34,7 +38,7 @@ int main() {
     Value* inputs[num_samples][nin];
     Value* targets[num_samples];
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < num_samples; i++) {
         targets[i] = create_value(raw_targets[i]);
         for (int j = 0; j < 3; j++) {
             inputs[i][j] = create_value(raw_inputs[i][j]);
@@ -45,26 +49,24 @@ int main() {
     const int epochs = 20;
 
     // Training loop
-    for (int epoch = 0; epoch < epochs; epoch++) {
+    for (int epoch = 1; epoch <= epochs; epoch++) {
         mlp_zero_grad(&mlp);
 
-        // Forward pass
         Value* total_loss = create_value(0.0);
+        Value* diffs[num_samples];
+        Value* squares[num_samples];
+        Value* temp_losses[num_samples];
         for (int i = 0; i < num_samples; i++) {
             Value **ypred = mlp_call(&mlp, inputs[i]);
-            Value* diff = sub(ypred[0], targets[i]);
-            Value* squared = power(diff, 2.0);
-            Value* sample_loss = truediv(squared, create_value((double)num_samples));
-            total_loss = add(total_loss, sample_loss);
-            free(ypred);
+            diffs[i] = sub(ypred[0], targets[i]);
+            squares[i] = power(diffs[i], 2.0);
+            temp_losses[i] = create_value(total_loss->data);
+            total_loss = add(temp_losses[i], squares[i]);
+            backward(total_loss);
         }
-
-        // Backward pass
-        backward(total_loss);
 
         printf("Epoch %d: Loss: %f\n", epoch, total_loss->data);
 
-        // Update
         update_parameters(&mlp, learning_rate);
 
         free(total_loss);
