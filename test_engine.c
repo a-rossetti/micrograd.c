@@ -1,6 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include "engine.h"
+#include "nn.h"
 
 void test_repr() {
     Value *a = create_value(2.5);
@@ -62,6 +64,25 @@ void test_combined() {
     printf("c.grad: %.1f (expected 5.0)\n", c->grad);
 }
 
+void test_loss() {
+    Value* inputs[2] = {create_value(0.5), create_value(1.0)};
+    Value* targets[2] = {create_value(2.0), create_value(3.0)};
+    Value* total_loss = create_value(0.0);
+    Value* diffs[2];
+    Value* squares[2];
+    Value* temp_losses[2];
+    printf("expected grads: -3.00, -4.00.\ngrads:\n");
+    for (int i = 0; i < 2; i++) {
+        diffs[i] = sub(targets[i], inputs[i]);
+        squares[i] = power(diffs[i], 2.0);
+        temp_losses[i] = create_value(total_loss->data);
+        total_loss = add(temp_losses[i], squares[i]);
+        backward(total_loss);
+        printf("  inputs[%d].grad: %.2f\n", i, inputs[i]->grad);
+    }
+    printf("combined: %.2f (expected 6.25)\n", total_loss->data);
+}
+
 int main() {
     printf("Testing repr function:\n");
     test_repr();
@@ -80,6 +101,9 @@ int main() {
 
     printf("\nTesting combined operations:\n");
     test_combined();
+
+    printf("\nTesting loss:\n");
+    test_loss();
 
     return 0;
 }

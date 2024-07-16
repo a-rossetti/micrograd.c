@@ -4,11 +4,15 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <string.h>
 
 void update_parameters(MLP *mlp, Value *learning_rate) {
     Value** params = mlp_parameters(mlp);
     int n_params = mlp_n_params(mlp);
+    //printf("%d\n", n_params);
     for (int i = 0; i < n_params; i++) {
+        //char* repri = repr(params[i]);
+        //printf("%s\n", repri);
         params[i]->data -= learning_rate->data * params[i]->grad;
     }
     free(params);
@@ -34,7 +38,7 @@ int main() {
     Value* inputs[num_samples][nin];
     Value* targets[num_samples];
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < num_samples; i++) {
         targets[i] = create_value(raw_targets[i]);
         for (int j = 0; j < 3; j++) {
             inputs[i][j] = create_value(raw_inputs[i][j]);
@@ -45,66 +49,38 @@ int main() {
     const int epochs = 20;
 
     // Training loop
-    for (int epoch = 0; epoch < epochs; epoch++) {
+    for (int epoch = 1; epoch <= epochs; epoch++) {
         mlp_zero_grad(&mlp);
 
-        // Forward pass
         Value* total_loss = create_value(0.0);
-        MLPOutput** outputs = malloc(num_samples * sizeof(MLPOutput*));
-
+        Value* diffs[num_samples];
+        Value* squares[num_samples];
+        Value* temp_losses[num_samples];
         for (int i = 0; i < num_samples; i++) {
-            outputs[i] = mlp_call(&mlp, inputs[i]);
-            Value* ypred = outputs[i]->layer_outputs[mlp.n_layers - 1][0];
-            Value* diff = sub(ypred, targets[i]);
-            Value* squared = power(diff, 2.0);
-            Value* sample_loss = truediv(squared, create_value((double)num_samples));
-            Value* new_total_loss = add(total_loss, sample_loss);
-            free(total_loss);
-            total_loss = new_total_loss;
-
-            free(diff);
-            free(squared);
-            free(sample_loss);
+            Value **ypred = mlp_call(&mlp, inputs[i]);
+            diffs[i] = sub(ypred[0], targets[i]);
+            squares[i] = power(diffs[i], 2.0);
+            temp_losses[i] = create_value(total_loss->data);
+            total_loss = add(temp_losses[i], squares[i]);
+            backward(total_loss);
         }
-
-        // Backward pass
-        backward(total_loss);
 
         printf("Epoch %d: Loss: %f\n", epoch, total_loss->data);
 
-        // Update parameters
         update_parameters(&mlp, learning_rate);
 
-        // Free memory
-        for (int i = 0; i < num_samples; i++) {
-            for (int j = 0; j < outputs[i]->n_layers; j++) {
-                for (int k = 0; k < mlp.layers[j].n_neurons; k++) {
-                    free(outputs[i]->layer_outputs[j][k]);
-                }
-                free(outputs[i]->layer_outputs[j]);
-            }
-            free(outputs[i]->layer_outputs);
-            free(outputs[i]);
-        }
-        free(outputs);
         free(total_loss);
     }
 
     printf("Final predictions:\n");
     for (int i = 0; i < num_samples; i++) {
-        MLPOutput* output = mlp_call(&mlp, inputs[i]);
-        Value* final_pred = output->layer_outputs[mlp.n_layers - 1][0];
-        printf("Prediction for sample %d: %s\n", i + 1, repr(final_pred));
+        Value **final_pred = mlp_call(&mlp, inputs[i]);
+        printf("Prediction for sample %d: %s\n", i + 1, repr(final_pred[0]));
 
-        // Free the output structure
-        for (int j = 0; j < output->n_layers; j++) {
-            for (int k = 0; k < mlp.layers[j].n_neurons; k++) {
-                free(output->layer_outputs[j][k]);
-            }
-            free(output->layer_outputs[j]);
+        for (int j = 0; j < mlp.layers[mlp.n_layers - 1].n_neurons; j++) {
+            free(final_pred[j]);
         }
-        free(output->layer_outputs);
-        free(output);
+        free(final_pred);
     }
 
     return 0;
