@@ -9,10 +9,10 @@
 void update_parameters(MLP *mlp, Value *learning_rate) {
     Value** params = mlp_parameters(mlp);
     int n_params = mlp_n_params(mlp);
-    printf("%d\n", n_params);
+    //printf("%d\n", n_params);
     for (int i = 0; i < n_params; i++) {
-        char* repri = repr(params[i]);
-        printf("%s\n", repri);
+        //char* repri = repr(params[i]);
+        //printf("%s\n", repri);
         params[i]->data -= learning_rate->data * params[i]->grad;
     }
     free(params);
