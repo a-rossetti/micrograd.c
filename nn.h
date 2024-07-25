@@ -43,7 +43,7 @@ Value** layer_parameters(Layer *layer);
 
 void mlp_zero_grad(MLP *mlp);
 void mlp_init(MLP *mlp, int nin, int *nouts, int nouts_len);
-MLPOutput* mlp_call(MLP *mlp, Value **x);
+Value** mlp_call(MLP *mlp, Value **x);
 int mlp_n_params(MLP *mlp);
 Value** mlp_parameters(MLP *mlp);
 

@@ -127,18 +127,23 @@ void mlp_init(MLP *mlp, int nin, int *nouts, int nouts_len) {
     free(sizes);
 }
 
-MLPOutput* mlp_call(MLP *mlp, Value **x) {
-    MLPOutput* output = malloc(sizeof(MLPOutput));
-    output->layer_outputs = malloc(mlp->n_layers * sizeof(Value**));
-    output->n_layers = mlp->n_layers;
-
+Value** mlp_call(MLP *mlp, Value **x) {
     Value **current_x = x;
 
     for (int i = 0; i < mlp->n_layers; i++) {
-        output->layer_outputs[i] = layer_call(&mlp->layers[i], current_x);
-        current_x = output->layer_outputs[i];
+        Value **layer_out = layer_call(&mlp->layers[i], current_x);
+
+        if (i > 0) {
+            for (int j = 0; j < mlp->layers[i-1].n_neurons; j++) {
+                free(current_x[j]);
+            }
+            free(current_x);
+        }
+
+        current_x = layer_out;
     }
-    return output;
+
+    return current_x;
 }
 
 int mlp_n_params(MLP *mlp) {
