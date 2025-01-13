@@ -1,8 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
 #include "engine.h"
-#include "nn.h"
 
 void test_repr() {
     Value *a = create_value(2.5);

@@ -19,29 +19,39 @@ void neuron_init(Neuron *neuron, int n_inputs, NeuronConfig config) {
     neuron->config = config;
 
     for (int i = 0; i < n_inputs; i++) {
-        neuron->w[i].data = ((double)rand() / RAND_MAX) * 2 - 1;
-        neuron->w[i].grad = 0;
+        Value* w = create_value(((double)rand() / RAND_MAX) * 2 - 1);
+        neuron->w[i] = *w;
+        free(w);
     }
-    neuron->b.data = ((double)rand() / RAND_MAX) * 2 - 1;;
-    neuron->b.grad = 0;
+    Value* b = create_value(((double)rand() / RAND_MAX) * 2 - 1);
+    neuron->b = *b;
+    free(b);
 }
 
 Value* neuron_call(Neuron *neuron, Value **x) {
-    Value *act = create_value(neuron->b.data);
+    Value *act = create_value(0.0);
+    Value *bias = create_value(neuron->b.data);
+    Value *tmp = add(act, bias);
+    free(act);
+    act = tmp;
+    free(bias);
 
     for (int i = 0; i < neuron->n_inputs; i++) {
-        Value* prod = mul(&(neuron->w[i]), x[i]);
+        Value *weight = create_value(neuron->w[i].data);
+        Value* prod = mul(weight, x[i]);
         Value* sum = add(act, prod);
+        free(weight);
         free(act);
+        free(prod);
         act = sum;
     }
-    
+
     if (neuron->config.nonlin == 1) {
         Value* relu_out = relu(act);
         free(act);
         return relu_out;
     }
-    
+
     return act;
 }
 
