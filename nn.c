@@ -14,32 +14,46 @@ void neuron_zero_grad(Neuron *neuron) {
 }
 
 void neuron_init(Neuron *neuron, int n_inputs, NeuronConfig config) {
-    neuron->w = (Value **)malloc(n_inputs * sizeof(Value));
+    neuron->w = (Value **)malloc(n_inputs * sizeof(Value*));
     neuron->n_inputs = n_inputs;
     neuron->config = config;
 
     for (int i = 0; i < n_inputs; i++) {
-        neuron->w[i] = create_value(((double)rand() / RAND_MAX) * 2 - 1);
+        // Create proper Value objects for weights
+        Value* w = create_value(((double)rand() / RAND_MAX) * 2 - 1);
+        neuron->w[i] = w;  // Store the pointer directly
     }
-    neuron->b = create_value(((double)rand() / RAND_MAX) * 2 - 1);
+    // Create proper Value object for bias
+    Value* b = create_value(((double)rand() / RAND_MAX) * 2 - 1);
+    neuron->b = b;  // Store the pointer directly
 }
 
 Value* neuron_call(Neuron *neuron, Value **x) {
+    // Create initial Value for accumulation
     Value *act = create_value(0.0);
-    Value *tmp = add(act, neuron->b);
+    
+    // Add bias first using proper Value operations
+    Value *bias = create_value(neuron->b->data);
+    Value *tmp = add(act, bias);
     free(act);
+    free(bias);
     act = tmp;
 
     for (int i = 0; i < neuron->n_inputs; i++) {
-        Value* prod = mul(neuron->w[i], x[i]);
-        Value* sum = add(act, prod);
+        // Create proper Value objects for the computation
+        Value *weight = create_value(neuron->w[i]->data);
+        Value *prod = mul(weight, x[i]);
+        Value *sum = add(act, prod);
+        
+        // Clean up intermediate Values
+        free(weight);
         free(act);
         free(prod);
         act = sum;
     }
 
     if (neuron->config.nonlin == 1) {
-        Value* relu_out = relu(act);
+        Value *relu_out = relu(act);
         free(act);
         return relu_out;
     }
@@ -49,25 +63,28 @@ Value* neuron_call(Neuron *neuron, Value **x) {
 
 Value** neuron_parameters(Neuron *neuron) {
     int n_params = neuron->n_inputs + 1;
-    Value **params = (Value**)malloc(n_params * sizeof(Value*));
+    Value **params = (Value **)malloc(n_params * sizeof(Value*));
     if (params == NULL) return NULL;
 
     for (int i = 0; i < neuron->n_inputs; i++) {
-        params[i] = neuron->w[i];
+        // Create new Value objects for the parameters
+        params[i] = create_value(neuron->w[i]->data);
+        params[i]->grad = neuron->w[i]->grad;  // Copy the gradient
     }
-    params[neuron->n_inputs] = neuron->b;
+    // Create new Value object for bias
+    params[neuron->n_inputs] = create_value(neuron->b->data);
+    params[neuron->n_inputs]->grad = neuron->b->grad;  // Copy the gradient
 
     return params;
 }
 
 void neuron_free(Neuron *neuron) {
     for (int i = 0; i < neuron->n_inputs; i++) {
-        free(neuron->w[i]);
+        free(neuron->w[i]);  // Free each weight Value
     }
-    free(neuron->w);
-    free(neuron->b);
+    free(neuron->w);  // Free the array of pointers
+    free(neuron->b);  // Free the bias Value
 }
-
 // Layer functions
 void layer_zero_grad(Layer *layer) {
     for (int i = 0; i < layer->n_neurons; i++) {
