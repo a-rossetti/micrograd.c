@@ -8,39 +8,31 @@
 // Neuron functions
 void neuron_zero_grad(Neuron *neuron) {
     for (int i = 0; i < neuron->n_inputs; i++) {
-        neuron->w[i].grad = 0;
+        neuron->w[i]->grad = 0;
     }
-    neuron->b.grad = 0;
+    neuron->b->grad = 0;
 }
 
 void neuron_init(Neuron *neuron, int n_inputs, NeuronConfig config) {
-    neuron->w = (Value *)malloc(n_inputs * sizeof(Value));
+    neuron->w = (Value **)malloc(n_inputs * sizeof(Value));
     neuron->n_inputs = n_inputs;
     neuron->config = config;
 
     for (int i = 0; i < n_inputs; i++) {
-        Value* w = create_value(((double)rand() / RAND_MAX) * 2 - 1);
-        neuron->w[i] = *w;
-        free(w);
+        neuron->w[i] = create_value(((double)rand() / RAND_MAX) * 2 - 1);
     }
-    Value* b = create_value(((double)rand() / RAND_MAX) * 2 - 1);
-    neuron->b = *b;
-    free(b);
+    neuron->b = create_value(((double)rand() / RAND_MAX) * 2 - 1);
 }
 
 Value* neuron_call(Neuron *neuron, Value **x) {
     Value *act = create_value(0.0);
-    Value *bias = create_value(neuron->b.data);
-    Value *tmp = add(act, bias);
+    Value *tmp = add(act, neuron->b);
     free(act);
     act = tmp;
-    free(bias);
 
     for (int i = 0; i < neuron->n_inputs; i++) {
-        Value *weight = create_value(neuron->w[i].data);
-        Value* prod = mul(weight, x[i]);
+        Value* prod = mul(neuron->w[i], x[i]);
         Value* sum = add(act, prod);
-        free(weight);
         free(act);
         free(prod);
         act = sum;
@@ -61,11 +53,19 @@ Value** neuron_parameters(Neuron *neuron) {
     if (params == NULL) return NULL;
 
     for (int i = 0; i < neuron->n_inputs; i++) {
-        params[i] = &neuron->w[i];
+        params[i] = neuron->w[i];
     }
-    params[neuron->n_inputs] = &neuron->b;
+    params[neuron->n_inputs] = neuron->b;
 
     return params;
+}
+
+void neuron_free(Neuron *neuron) {
+    for (int i = 0; i < neuron->n_inputs; i++) {
+        free(neuron->w[i]);
+    }
+    free(neuron->w);
+    free(neuron->b);
 }
 
 // Layer functions
@@ -110,6 +110,13 @@ Value** layer_parameters(Layer *layer) {
     }
 
     return params;
+}
+
+void layer_free(Layer *layer) {
+    for (int i = 0; i < layer->n_neurons; i++) {
+        neuron_free(&layer->neurons[i]);
+    }
+    free(layer->neurons);
 }
 
 // MLP functions
@@ -184,5 +191,12 @@ Value** mlp_parameters(MLP *mlp) {
     }
 
     return params;
+}
+
+void mlp_free(MLP *mlp) {
+    for (int i = 0; i < mlp->n_layers; i++) {
+        layer_free(&mlp->layers[i]);
+    }
+    free(mlp->layers);
 }
 

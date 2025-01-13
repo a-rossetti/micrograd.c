@@ -28,16 +28,19 @@ int main() {
     MLP mlp;
     mlp_init(&mlp, nin, nouts, nouts_len);
 
-    double raw_inputs[][3] = {{2.0, 3.0, -1.0},
-                          {3.0, -1.0, 0.5},
-                          {0.5, 1.0, 1.0},
-                          {1.0, 1.0, -1.0}};
+    double raw_inputs[][3] = {
+        {2.0, 3.0, -1.0},
+        {3.0, -1.0, 0.5},
+        {0.5, 1.0, 1.0},
+        {1.0, 1.0, -1.0}
+    };
     double raw_targets[] = {1.0, -1.0, -1.0, 1.0};
     int num_samples = sizeof(raw_targets) / sizeof(raw_targets[0]);
 
     Value* inputs[num_samples][nin];
     Value* targets[num_samples];
 
+    // Initialize inputs and targets
     for (int i = 0; i < num_samples; i++) {
         targets[i] = create_value(raw_targets[i]);
         for (int j = 0; j < 3; j++) {
@@ -74,7 +77,7 @@ int main() {
         // Backward pass
         backward(total_loss);
 
-        // Debug print gradients
+        // Debug print parameters and gradients
         Value** params = mlp_parameters(&mlp);
         int n_params = mlp_n_params(&mlp);
         printf("Epoch %d Loss: %f\n", epoch, total_loss->data);
@@ -88,6 +91,7 @@ int main() {
         free(total_loss);
     }
 
+    // Final predictions
     printf("Final predictions:\n");
     for (int i = 0; i < num_samples; i++) {
         Value **final_pred = mlp_call(&mlp, inputs[i]);
@@ -98,6 +102,17 @@ int main() {
         }
         free(final_pred);
     }
+
+    // Clean up everything
+    for (int i = 0; i < num_samples; i++) {
+        free(targets[i]);
+        for (int j = 0; j < nin; j++) {
+            free(inputs[i][j]);
+        }
+    }
+
+    free(learning_rate);
+    mlp_free(&mlp);
 
     return 0;
 }
