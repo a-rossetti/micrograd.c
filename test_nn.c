@@ -61,14 +61,14 @@ int main() {
 
     // Training loop
     for (int epoch = 1; epoch <= epochs; epoch++) {
-        // Zero gradients before forward pass
         mlp_zero_grad(&mlp);
+
+        // Store all intermediate Values that we need to keep until after backward
+        Value** intermediate_values = malloc(1000 * sizeof(Value*));  // Adjust size as needed
+        int n_intermediates = 0;
 
         // Forward pass
         Value* total_loss = create_value(0.0);
-        Value** intermediate_values = malloc(num_samples * 4 * sizeof(Value*));
-        int num_intermediates = 0;
-
         for (int i = 0; i < num_samples; i++) {
             Value **ypred = mlp_call(&mlp, inputs[i]);
             Value* diff = sub(ypred[0], targets[i]);
@@ -76,19 +76,19 @@ int main() {
             Value* new_total = add(total_loss, square);
 
             // Store intermediates instead of freeing
-            intermediate_values[num_intermediates++] = diff;
-            intermediate_values[num_intermediates++] = square;
-            intermediate_values[num_intermediates++] = total_loss;
-            intermediate_values[num_intermediates++] = ypred[0];
+            intermediate_values[n_intermediates++] = diff;
+            intermediate_values[n_intermediates++] = square;
+            intermediate_values[n_intermediates++] = total_loss;
+            intermediate_values[n_intermediates++] = ypred[0];
 
-            free(ypred); // Can free this as it's just the array
+            free(ypred);  // Only free array
             total_loss = new_total;
         }
 
         // Backward pass
         backward(total_loss);
 
-        // Debug print parameters and gradients
+        // Debug print
         Value** params = mlp_parameters(&mlp);
         int n_params = mlp_n_params(&mlp);
         printf("Epoch %d Loss: %f\n", epoch, total_loss->data);
@@ -99,12 +99,14 @@ int main() {
         // Update parameters
         update_parameters(&mlp, learning_rate);
 
-        // Free intermediates
-        for (int i = 0; i < num_intermediates; i++) {
+        // NOW we can free intermediates
+        for (int i = 0; i < n_intermediates; i++) {
             free(intermediate_values[i]);
         }
         free(intermediate_values);
         free(total_loss);
+
+        free(params);
     }
 
     // Final predictions

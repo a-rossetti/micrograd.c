@@ -29,36 +29,29 @@ void neuron_init(Neuron *neuron, int n_inputs, NeuronConfig config) {
 }
 
 Value* neuron_call(Neuron *neuron, Value **x) {
-    // First multiply weights with inputs and sum them
     Value *act = NULL;
     
+    // First compute all products and keep them
+    Value **products = malloc(neuron->n_inputs * sizeof(Value*));
     for (int i = 0; i < neuron->n_inputs; i++) {
-        Value *prod = mul(neuron->w[i], x[i]);
-        if (act == NULL) {
-            act = prod;
-        } else {
-            Value *sum = add(act, prod);
-            free(act);  // Free previous intermediate result
-            act = sum;
-        }
+        products[i] = mul(neuron->w[i], x[i]);
     }
     
-    // Now add the bias - must create a new node in the graph
-    if (act == NULL) {
-        act = neuron->b;  // Only if no inputs
-    } else {
-        Value *sum = add(act, neuron->b);
-        free(act);
-        act = sum;
+    // Sum all products while maintaining connections
+    act = products[0];
+    for (int i = 1; i < neuron->n_inputs; i++) {
+        act = add(act, products[i]);
     }
-
-    // Apply ReLU if needed
+    
+    // Add bias (maintaining connection)
+    act = add(act, neuron->b);
+    
+    // Apply ReLU if needed (maintaining connection)
     if (neuron->config.nonlin == 1) {
-        Value *relu_out = relu(act);
-        free(act);
-        return relu_out;
+        act = relu(act);
     }
-
+    
+    free(products);  // Only free the array, not the Values
     return act;
 }
 
@@ -167,9 +160,6 @@ Value** mlp_call(MLP *mlp, Value **x) {
         Value **layer_out = layer_call(&mlp->layers[i], current_x);
 
         if (i > 0) {
-            for (int j = 0; j < mlp->layers[i-1].n_neurons; j++) {
-                free(current_x[j]);
-            }
             free(current_x);
         }
 

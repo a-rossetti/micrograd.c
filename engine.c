@@ -30,7 +30,6 @@ void relu_backward(Value* out) {
     Value *a = out->prev[0];
     if (out->data > 0) 
         a->grad += out->grad;
-    printf("relu_backward called for Value: %s\n", repr(out));
 }
 
 // Value structure
