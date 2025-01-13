@@ -66,19 +66,22 @@ int main() {
 
         // Forward pass
         Value* total_loss = create_value(0.0);
+        Value** intermediate_values = malloc(num_samples * 4 * sizeof(Value*));
+        int num_intermediates = 0;
+
         for (int i = 0; i < num_samples; i++) {
             Value **ypred = mlp_call(&mlp, inputs[i]);
             Value* diff = sub(ypred[0], targets[i]);
             Value* square = power(diff, 2.0);
             Value* new_total = add(total_loss, square);
 
-            // Free intermediate values
-            free(diff);
-            free(square);
-            free(total_loss);
-            free(ypred[0]);
-            free(ypred);
+            // Store intermediates instead of freeing
+            intermediate_values[num_intermediates++] = diff;
+            intermediate_values[num_intermediates++] = square;
+            intermediate_values[num_intermediates++] = total_loss;
+            intermediate_values[num_intermediates++] = ypred[0];
 
+            free(ypred); // Can free this as it's just the array
             total_loss = new_total;
         }
 
@@ -92,10 +95,15 @@ int main() {
         for (int i = 0; i < n_params; i++) {
             printf("Param %d: data=%f, grad=%f\n", i, params[i]->data, params[i]->grad);
         }
-        free(params);
 
         // Update parameters
         update_parameters(&mlp, learning_rate);
+
+        // Free intermediates
+        for (int i = 0; i < num_intermediates; i++) {
+            free(intermediate_values[i]);
+        }
+        free(intermediate_values);
         free(total_loss);
     }
 
