@@ -10,8 +10,16 @@ void update_parameters(MLP *mlp, Value *learning_rate) {
     int n_params = mlp_n_params(mlp);
     
     for (int i = 0; i < n_params; i++) {
-        Value* new_param = create_value(params[i]->data - learning_rate->data * params[i]->grad);
+        // Create a Value for the gradient update
+        Value* grad_update = mul(create_value(params[i]->grad), learning_rate);
+        // Subtract the update from the parameter
+        Value* new_param = sub(params[i], grad_update);
+        // Update the parameter while maintaining graph connections
         params[i]->data = new_param->data;
+        params[i]->grad = 0.0;  // Zero out the gradient for next iteration
+        
+        // Clean up
+        free(grad_update);
         free(new_param);
     }
     

@@ -29,29 +29,30 @@ void neuron_init(Neuron *neuron, int n_inputs, NeuronConfig config) {
 }
 
 Value* neuron_call(Neuron *neuron, Value **x) {
-    // Create initial Value for accumulation
-    Value *act = create_value(0.0);
+    // First multiply weights with inputs and sum them
+    Value *act = NULL;
     
-    // Add bias first using proper Value operations
-    Value *bias = create_value(neuron->b->data);
-    Value *tmp = add(act, bias);
-    free(act);
-    free(bias);
-    act = tmp;
-
     for (int i = 0; i < neuron->n_inputs; i++) {
-        // Create proper Value objects for the computation
-        Value *weight = create_value(neuron->w[i]->data);
-        Value *prod = mul(weight, x[i]);
-        Value *sum = add(act, prod);
-        
-        // Clean up intermediate Values
-        free(weight);
+        Value *prod = mul(neuron->w[i], x[i]);
+        if (act == NULL) {
+            act = prod;
+        } else {
+            Value *sum = add(act, prod);
+            free(act);  // Free previous intermediate result
+            act = sum;
+        }
+    }
+    
+    // Now add the bias - must create a new node in the graph
+    if (act == NULL) {
+        act = neuron->b;  // Only if no inputs
+    } else {
+        Value *sum = add(act, neuron->b);
         free(act);
-        free(prod);
         act = sum;
     }
 
+    // Apply ReLU if needed
     if (neuron->config.nonlin == 1) {
         Value *relu_out = relu(act);
         free(act);
@@ -66,14 +67,11 @@ Value** neuron_parameters(Neuron *neuron) {
     Value **params = (Value **)malloc(n_params * sizeof(Value*));
     if (params == NULL) return NULL;
 
+    // Return pointers to the actual parameters
     for (int i = 0; i < neuron->n_inputs; i++) {
-        // Create new Value objects for the parameters
-        params[i] = create_value(neuron->w[i]->data);
-        params[i]->grad = neuron->w[i]->grad;  // Copy the gradient
+        params[i] = neuron->w[i];  // Direct pointer to the weight Value
     }
-    // Create new Value object for bias
-    params[neuron->n_inputs] = create_value(neuron->b->data);
-    params[neuron->n_inputs]->grad = neuron->b->grad;  // Copy the gradient
+    params[neuron->n_inputs] = neuron->b;  // Direct pointer to the bias Value
 
     return params;
 }
@@ -85,6 +83,7 @@ void neuron_free(Neuron *neuron) {
     free(neuron->w);  // Free the array of pointers
     free(neuron->b);  // Free the bias Value
 }
+
 // Layer functions
 void layer_zero_grad(Layer *layer) {
     for (int i = 0; i < layer->n_neurons; i++) {
