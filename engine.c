@@ -28,8 +28,8 @@ void power_backward(Value* out) {
 
 void relu_backward(Value* out) {
     Value *a = out->prev[0];
-    if (out->data > 0) 
-        a->grad += out->grad;
+    double leak = 0.01;
+    a->grad += (out->data > 0 ? 1.0 : leak) * out->grad;
 }
 
 // Value structure
@@ -97,7 +97,8 @@ Value* power(Value* a, double b) {
 }
 
 Value* relu(Value* a) {
-    Value* out = create_value(a->data < 0 ? 0 : a->data);
+    double leak = 0.01;  // Adjust as needed
+    Value* out = create_value(a->data < 0 ? leak * a->data : a->data);
     if (out == NULL) return NULL;
 
     out->prev[0] = a;
@@ -124,32 +125,59 @@ Value* truediv(Value* a, Value* b) {
 
 // Backward function
 void build_topo(Value* v, Value** topo, int* topo_size, Value** visited, int* visited_size) {
-    for (int i = 0; i < *visited_size; i++) {
-        if (visited[i] == v) return;
-    }
-    visited[(*visited_size)++] = v;
+    Value** stack = malloc(10000 * sizeof(Value*));
+    int stack_size = 0;
+    stack[stack_size++] = v;
 
-    for (int i = 0; i < 2; i++) {
-        if (v->prev[i] != NULL) {
-            build_topo(v->prev[i], topo, topo_size, visited, visited_size);
+    while (stack_size > 0) {
+        Value* node = stack[--stack_size];
+        
+        // Skip if already visited
+        int is_visited = 0;
+        for (int i = 0; i < *visited_size; i++) {
+            if (visited[i] == node) {
+                is_visited = 1;
+                break;
+            }
+        }
+        if (is_visited) continue;
+        
+        // Mark as visited
+        visited[(*visited_size)++] = node;
+        
+        // Push children onto the stack (right first, then left)
+        for (int i = 1; i >= 0; i--) {
+            if (node->prev[i] != NULL) {
+                stack[stack_size++] = node->prev[i];
+            }
         }
     }
-    topo[(*topo_size)++] = v;
+    
+    // Reverse visited to get topological order
+    for (int i = *visited_size - 1; i >= 0; i--) {
+        topo[(*topo_size)++] = visited[i];
+    }
+    
+    free(stack);
 }
 
 void backward(Value* v) {
-    Value* topo[1000];
+    const int max_nodes = 1000000; // Increased buffer size
+    Value** topo = malloc(max_nodes * sizeof(Value*));
+    Value** visited = malloc(max_nodes * sizeof(Value*));
     int topo_size = 0;
-    Value* visited[1000];
     int visited_size = 0;
 
     build_topo(v, topo, &topo_size, visited, &visited_size);
 
     v->grad = 1.0;
     for (int i = topo_size - 1; i >= 0; i--) {
-        if (topo[i]->backward != NULL) {
-            topo[i]->backward(topo[i]);
-        }
+    if (topo[i]->backward != NULL) {
+        topo[i]->backward(topo[i]);
     }
+}
+
+    free(topo);
+    free(visited);
 }
 

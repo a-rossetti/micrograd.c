@@ -14,18 +14,36 @@ void neuron_zero_grad(Neuron *neuron) {
 }
 
 void neuron_init(Neuron *neuron, int n_inputs, NeuronConfig config) {
+    // Guard against invalid input size
+    if (n_inputs <= 0) {
+        fprintf(stderr, "Error: n_inputs must be > 0\n");
+        exit(EXIT_FAILURE);
+    }
+
     neuron->w = (Value **)malloc(n_inputs * sizeof(Value*));
+    if (!neuron->w) {
+        fprintf(stderr, "Failed to allocate weights array\n");
+        exit(EXIT_FAILURE);
+    }
+
     neuron->n_inputs = n_inputs;
     neuron->config = config;
 
+    // He initialization with validation
     for (int i = 0; i < n_inputs; i++) {
-        // Create proper Value objects for weights
-        Value* w = create_value(((double)rand() / RAND_MAX) * 2 - 1);
-        neuron->w[i] = w;  // Store the pointer directly
+        neuron->w[i] = create_value(((double)rand() / RAND_MAX) * 2 - 1);
+        if (!neuron->w[i]) {
+            fprintf(stderr, "Failed to create weight Value\n");
+            exit(EXIT_FAILURE);
+        }
     }
-    // Create proper Value object for bias
-    Value* b = create_value(((double)rand() / RAND_MAX) * 2 - 1);
-    neuron->b = b;  // Store the pointer directly
+
+    // Initialize bias safely
+    neuron->b = create_value(0.0);
+    if (!neuron->b) {
+        fprintf(stderr, "Failed to create bias Value\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 Value* neuron_call(Neuron *neuron, Value **x) {
@@ -171,10 +189,9 @@ Value** mlp_call(MLP *mlp, Value **x) {
 
 int mlp_n_params(MLP *mlp) {
     int n_params = 0;
-    int params_per_neuron = mlp->layers[0].neurons[0].n_inputs + 1;
     for (int i = 0; i < mlp->n_layers; i++) {
         Layer *layer = &mlp->layers[i];
-        n_params += layer->n_neurons * params_per_neuron;
+        n_params += layer->n_neurons * (layer->neurons[0].n_inputs + 1); // weights + biases
     }
     return n_params;
 }
