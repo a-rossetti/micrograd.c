@@ -1,9 +1,5 @@
 # micrograd.c
 
-**Karpathy's micrograd implementation in C** (work in progress)
-
-## Introduction
-
 `micrograd.c` is a C implementation inspired by Andrej Karpathy's micrograd, a tiny autograd engine. This project replicates the core functionality of micrograd in C.
 
 ## Description
@@ -12,7 +8,7 @@ The autograd engine handles automatic differentiation, enabling the computation 
 
 ## Training Loop
 
-In the training loop, the code performs forward passes to compute the outputs and the loss, followed by a backward pass to compute gradients. The parameters are then updated using the Adam optimizer, which maintains first and second moment estimates (m and v) and applies bias correction to update the parameters.
+In the training loop, the code performs forward passes to compute the outputs and the loss, followed by a backward pass to compute gradients. The parameters are then updated using the Adam optimizer.
 
 ## Tests
 
