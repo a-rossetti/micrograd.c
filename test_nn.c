@@ -133,7 +133,7 @@ void test_training() {
     double* m = calloc(n_params, sizeof(double));  // 1st moment
     double* v = calloc(n_params, sizeof(double));  // 2nd moment
     double beta1 = 0.9, beta2 = 0.999, eps = 1e-8;
-    double lr = 0.01;  // Adam typically uses smaller learning rates
+    double lr = 0.02;  // Adam typically uses smaller learning rates
 
     // Training loop
     float total_losses[200];
@@ -173,7 +173,7 @@ void test_training() {
 
         // Store and print loss
         total_losses[epoch] = avg_loss->data;
-        printf("Training Step %d - Loss: %.8f\n", epoch+1, avg_loss->data);
+        printf("Training Step %d - Average Loss: %.8f\n", epoch+1, avg_loss->data);
         
         // Cleanup
         free(avg_loss);
@@ -196,7 +196,7 @@ void test_training() {
         free(output);  // Free output array (not Values)
     }
     Value* final_avg_loss = truediv(final_loss, create_value(4.0));
-    printf("Final Loss: %.8f\n", final_avg_loss->data);
+    printf("Final Average Loss: %.8f\n", final_avg_loss->data);
 
     // Cleanup final loss
     free(final_avg_loss);
