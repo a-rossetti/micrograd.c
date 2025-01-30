@@ -182,6 +182,26 @@ void test_training() {
         for (int i = 0; i < 4; i++) free(losses[i]);
     }
 
+    // After training loop: Evaluate final predictions and loss
+    printf("\nFinal Training Results:\n");
+    Value* final_loss = create_value(0.0);
+    for (int i = 0; i < 4; i++) {
+        Value** output = mlp_call(&mlp, inputs[i]);
+        Value* loss = power(sub(output[0], targets[i]), 2.0);  // L2 loss
+        final_loss = add(final_loss, loss);
+
+        // Print predicted vs actual values
+        printf("Input %d: Predicted = %.8f, Actual = %.8f\n", i+1, output[0]->data, targets[i]->data);
+
+        free(output);  // Free output array (not Values)
+    }
+    Value* final_avg_loss = truediv(final_loss, create_value(4.0));
+    printf("Final Loss: %.8f\n", final_avg_loss->data);
+
+    // Cleanup final loss
+    free(final_avg_loss);
+    free(final_loss);
+
     // Cleanup
     free(m);
     free(v);
