@@ -1,6 +1,6 @@
 # micrograd.c
 
-`micrograd.c` is a C implementation inspired by Andrej Karpathy's micrograd, a tiny autograd engine. This project replicates the core functionality of micrograd in C.
+micrograd.c is a C implementation of a tiny autograd engine, inspired by Andrej Karpathy's micrograd.
 
 ## Description
 
